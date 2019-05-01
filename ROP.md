@@ -9,7 +9,7 @@ plt条目中有如下指令。
 
   Fgets.plt:  
 	jmp		fgets.got
-	push		fgets index
+	push		fgets rel offset
 	jmp		xxxxx
   
  
@@ -19,7 +19,7 @@ plt条目中有如下指令。
 
 **重定位表中偏移就是对应的got表项。**  
 
-在第一次进行链接时候got表中存放的是plt项的下一条指令地址，所以会执行上面的push index，index为0实际是3即第四个,应为前三个有特殊用途。  
+在第一次进行链接时候got表中存放的是plt项的下一条指令地址，所以会执行上面的push rel oofset，offset为0实际是3即第四个,应为前三个有特殊用途。  
 
 **got表前三个内容如下：**  
 Got 0 存放 可执行文件动态段的地址，动态链接器利用该地址提取动态链接有关信息。  
