@@ -72,5 +72,79 @@ _dl_fixup(struct link_map *l, ElfW(Word) reloc_arg)
     return elf_machine_fixup_plt (l, result, reloc, rel_addr, value);
 }
 ```
+## link.h中的数据结构
+```
+struct r_scope_elem
+{
+  /* Array of maps for the scope.  */
+  //scope用的map数组
+  struct link_map **r_list;
+  /* Number of entries in the scope.  */
+  //map的数量
+  unsigned int r_nlist;
+};
+```
+```
+struct link_map
+  {
+    /* These first few members are part of the protocol with the debugger.
+       This is the same format used in SVR4.  */
+      //共享文件加载基地址
+    ElfW(Addr) l_addr;		/* Base address shared object is loaded at.  */
+      //绝对文件名
+    char *l_name;		/* Absolute file name object was found in.  */
+      //动态段加载地址
+    ElfW(Dyn) *l_ld;		/* Dynamic section of the shared object.  */
+      //加载项链表
+    struct link_map *l_next, *l_prev; /* Chain of loaded objects.  */
+
+    /* All following members are internal to the dynamic linker.
+       They may change without notice.  */
+      //其他成员是对于动态链接器内部的，可能随时改变不受提醒
+      
+      .......
+      
+ ElfW(Dyn) *l_info[DT_NUM + DT_THISPROCNUM + DT_VERSIONTAGNUM
+		      + DT_EXTRANUM + DT_VALNUM + DT_ADDRNUM];
+    const ElfW(Phdr) *l_phdr;	/* Pointer to program header table in core.  */
+    ElfW(Addr) l_entry;		/* Entry point location.  */
+    ElfW(Half) l_phnum;		/* Number of program header entries.  */
+    ElfW(Half) l_ldnum;		/* Number of dynamic segment entries.  */
+
+    /* Array of DT_NEEDED dependencies and their dependencies, in
+       dependency order for symbol lookup (with and without
+       duplicates).  There is no entry before the dependencies have
+       been loaded.  */
+       //依赖项，在加载之前，没有数组项
+    struct r_scope_elem l_searchlist;
+
+    /* We need a special searchlist to process objects marked with
+       DT_SYMBOLIC.  */
+    struct r_scope_elem l_symbolic_searchlist;
+
+    /* Dependent object that first caused this object to be loaded.  */
+    //引发这个模块被加载的模块
+    struct link_map *l_loader;
+    
+    .......
+    
+    /* Default array for 'l_scope'.  */
+    struct r_scope_elem *l_scope_mem[4];
+    /* Size of array allocated for 'l_scope'.  */
+    size_t l_scope_max;
+    /* This is an array defining the lookup scope for this link map.
+       There are initially at most three different scope lists.  */
+    struct r_scope_elem **l_scope;
+
+    /* A similar array, this time only with the local scope.  This is
+       used occasionally.  */
+    struct r_scope_elem *l_local_scope[2];
+    .......
+      
+```
+
+## _dl_lookup_symbol_x
+
+
 
 
