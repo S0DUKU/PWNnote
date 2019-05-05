@@ -5,7 +5,7 @@
 
 ---  
 
-![](https://github.com/S0DUKU/PWNnote/blob/master/ROP/ret2dlruntime/images/1.png)  
+![1.png](https://github.com/S0DUKU/PWNnote/blob/master/ROP/ret2dlruntime/images/1.png)  
 
 ---
 
@@ -13,7 +13,7 @@
 
 ---  
 
-![](https://github.com/S0DUKU/PWNnote/blob/master/ROP/ret2dlruntime/images/2.png)  
+![2.png](https://github.com/S0DUKU/PWNnote/blob/master/ROP/ret2dlruntime/images/2.png)  
 
 ---  
 
@@ -23,7 +23,7 @@
 
 ---
 
-![](https://github.com/S0DUKU/PWNnote/blob/master/ROP/ret2dlruntime/images/3.png)  
+![3.png](https://github.com/S0DUKU/PWNnote/blob/master/ROP/ret2dlruntime/images/3.png)  
 
 ---  
 
