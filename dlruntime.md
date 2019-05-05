@@ -1,5 +1,5 @@
-# about dl_runtime_resolve
-##资料
+# dl_runtime_resolve简要分析
+## 资料
 
 glibc 2.9 source
 linux elf 手册
@@ -207,9 +207,82 @@ _dl_fixup (
   ```
 ## elf中常见的信息结构
 
+有关elf的结构定义在elf.h中
+
+### elf动态段
 由elf程序头表中保存的PT_DYNAMIC段(动态段)，包含了动态链接器的所需的信息。
 
 运行时所需的共享库列表，全局偏移表(got)地址，重定位条目信息  
+
+条目结构  
+
+```
+typedef struct {
+  elf32_sword  d_tag
+  union{
+  elf32_word  d_val
+  elf32_addr  d_ptr
+  }d_un;
+  }elf32_dyn;
+  
+```
+
+d_tag控制d_un的含义  
+
+DT_HASH 		符号散列表地址   
+**DT_STRTAB		字符串表的地址**  
+**DT_SYMTAB		符号表地址**  
+DT_RELA			相对地址重定位表的地址  
+DT_STRSZ 		字符串表的字节大小  
+DT_INIT			初始化函数的地址
+DT_FINI 		终止函数的地址
+DT_SONAME 		共享目标文件名的字符串表偏移量
+**DT_JMPREL		仅用于plt的重定位条目地址**
+......
+
+.dynsym节 保存从共享库导入动态符号的信息  
+.dynstr节 保存动态符号字符串表  
+
+```
+typedef struct
+{
+  Elf32_Word	st_name;		/* 字符串表名字节偏移,0表示未定义 */
+  Elf32_Addr	st_value;		/* 符号值，位置或者地址偏移 */
+  Elf32_Word	st_size;		/* 符号大小 */
+  unsigned char	st_info;		/* 制定符号类型以及绑定属性 */
+  unsigned char	st_other;		/* 符号可见性 */
+  Elf32_Section	st_shndx;		/* 对应节头表索引 */
+  
+} Elf32_Sym;  
+
+/*
+符号类型  
+STT_NOTYPE 符号类型未定义  
+STT_FUNC 表示该符号与函数或者其他可执行代码关联   
+STT_OBJECT 该符号与数据目标文件关联  
+符号绑定  
+STB_LOCAL 本地符号在目标文件外不可见，如static  
+STB_GLOBAL 全局符号  
+STB_WEAK 弱全局  
+*/  
+
+//重定位条目 无addend情况下
+
+typedef struct
+{
+  Elf32_Addr	r_offset;		/* 相对基地址偏移地址 */
+  Elf32_Word	r_info;			/* 符号表索引 */
+} Elf32_Rel;
+
+```
+
+## 总结
+
+1.dl_runtime_resolve动态链接执行时内部调用dl_fixup函数完成对未定义符号的修复操作。  
+2.传入参数reloc_offset指向重定位表项中需要修改的重定位条目。
+3.根据这个重定位条目，获得对应符号表中的符号项信息，和需要修改的实际地址。
+4.通过符号项和字符串表获得符号名，传入符号项和相关参数调用_dl_lookup_symbol_x在本模块的link_map制定范围内搜索符号的定义。
+5.最后完成符号值修改，完成重定位。  
 
 
 
