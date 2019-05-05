@@ -1,6 +1,6 @@
 # about dl_runtime_resolve
 
-基于32位elf，64位一些结构会略有不同
+基于32位elf，64位一些结构会略有不同，新手学习，如果有理解错误，请师傅们帮忙指出。
 
 **elf执行时动态绑定简要分析**
 
@@ -38,4 +38,32 @@ plt[0]保存的代码如下:
 ---
 
 ## link_map结构简要分析  
+有关link_map的定义位于glibc源码的link.h中  
 
+```
+/* Structure to describe a single list of scope elements.  The lookup
+   functions get passed an array of pointers to such structures.  */
+   //描述一个特定范围的单链表结构，lookup函数往往需要传递一个保存这种结构的数组作为参数
+struct r_scope_elem
+{
+  /* Array of maps for the scope.  */
+  //用于描述范围的maps数组
+  struct link_map **r_list;
+  /* 这个范围的入口点个数  */
+  unsigned int r_nlist;
+  //这会在link_map中作为成员存在
+};
+
+//about link_map
+/* Structure describing a loaded shared object.  The `l_next' and `l_prev'
+   members form a chain of all the shared objects loaded at startup.
+
+   These data structures exist in space used by the run-time dynamic linker;
+   modifying them may have disastrous results.
+
+   This data structure might change in future, if necessary.  User-level
+   programs must avoid defining objects of this type.  */
+   
+   //link_map是一个用于描述可加载共享目标文件的结构，l_next,l_prev是一个链接了开始加载的所用共享目标文件，是一个单链表结构
+
+```
