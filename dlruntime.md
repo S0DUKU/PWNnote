@@ -2,7 +2,6 @@
 ##资料
 
 glibc 2.9 source
-《linux二进制分析》
 linux elf 手册
 &各种百度搜索
 
@@ -193,15 +192,25 @@ _dl_fixup (
   .......
   
   //在范围内搜索符号，定义在dl-lookup.c中
+  //参数:  		字符串表，符号表项st_name字段，模块link_map，搜索范围,
+  //					版本信息.....
   result = _dl_lookup_symbol_x (strtab + sym->st_name, l, &sym, l->l_scope,
 				    version, ELF_RTYPE_CLASS_PLT, flags, NULL);
 
   .......
+  //对result做一些收尾处理，最后修复plt表返回
   
   return elf_machine_fixup_plt (l, result, reloc, rel_addr, value);
   
   }
   
   ```
+## elf中常见的信息结构
+
+由elf程序头表中保存的PT_DYNAMIC段(动态段)，包含了动态链接器的所需的信息。
+
+运行时所需的共享库列表，全局偏移表(got)地址，重定位条目信息  
+
+
 
 
