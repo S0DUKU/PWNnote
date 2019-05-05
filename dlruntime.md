@@ -138,5 +138,70 @@ struct link_map
 # define D_PTR(map, i) (map)->i->d_un.d_ptr
 #endif
 
+/* Result of the lookup functions and how to retrieve the base address.  */
+//lookup系列函数的返回值
+typedef struct link_map *lookup_t;
+#define LOOKUP_VALUE(map) map
+#define LOOKUP_VALUE_ADDRESS(map) ((map) ? (map)->l_addr : 0)
+
 ```
+## _dl_fixup(struct link_map *__unbounded l, ElfW(Word) reloc_offset)简要分析
+
+dl_runtime_resolve的内部调用函数dl_fixup的实现在dl-runtime.c中  
+内容比较多，我也有些不清楚，大致分析出执行逻辑
+
+```
+#ifndef ELF_MACHINE_NO_PLT
+DL_FIXUP_VALUE_TYPE
+__attribute ((noinline)) ARCH_FIXUP_ATTRIBUTE
+_dl_fixup (
+# ifdef ELF_MACHINE_RUNTIME_FIXUP_ARGS
+	   ELF_MACHINE_RUNTIME_FIXUP_ARGS,
+# endif
+	   /* GKM FIXME: Fix trampoline to pass bounds so we can do
+	      without the `__unbounded' qualifier.  */
+	   struct link_map *__unbounded l, ElfW(Word) reloc_offset)
+{
+    //参数link_map ， 重定位表中偏移
+    //通过link_map，获得动态链接库中的符号表位置，link_map中有成员
+    //指向动态段，包含各种动态链接所需要的信息
+    
+    
+  const ElfW(Sym) *const symtab
+    = (const void *) D_PTR (l, l_info[DT_SYMTAB]);
+    
+    //获取动态库的字符串表
+  const char *strtab = (const void *) D_PTR (l, l_info[DT_STRTAB]);
+
+    //获得重定位项的地址，宏转化为l->l_info[DT_JMPREL]+reloc_offset
+  const PLTREL *const reloc
+    = (const void *) (D_PTR (l, l_info[DT_JMPREL]) + reloc_offset);
+    //根据重定位项目的r_info字段中的偏移查找符号表中的符号项
+  const ElfW(Sym) *sym = &symtab[ELFW(R_SYM) (reloc->r_info)];
+  //利用r_offset字段获得重定位需要修改的地址
+  void *const rel_addr = (void *)(l->l_addr + reloc->r_offset);
+  
+  //lookup函数的返回结果
+  lookup_t result;
+  /* The type of the return value of fixup/profile_fixup.  */
+  //#define DL_FIXUP_VALUE_TYPE ElfW(Addr)
+  
+  DL_FIXUP_VALUE_TYPE value;
+  //简单的plt字段检查
+  assert (ELFW(R_TYPE)(reloc->r_info) == ELF_MACHINE_JMP_SLOT);
+  
+  .......
+  
+  //在范围内搜索符号，定义在dl-lookup.c中
+  result = _dl_lookup_symbol_x (strtab + sym->st_name, l, &sym, l->l_scope,
+				    version, ELF_RTYPE_CLASS_PLT, flags, NULL);
+
+  .......
+  
+  return elf_machine_fixup_plt (l, result, reloc, rel_addr, value);
+  
+  }
+  
+  ```
+
 
