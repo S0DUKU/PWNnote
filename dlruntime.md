@@ -271,7 +271,7 @@ STB_WEAK 弱全局
 typedef struct
 {
   Elf32_Addr	r_offset;		/* 地址 */
-  Elf32_Word	r_info;			/* 符号表索引 */
+  Elf32_Word	r_info;			/* 重定位类型，符号表索引 */
 } Elf32_Rel;
 
 ```
