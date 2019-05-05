@@ -1,4 +1,10 @@
 # about dl_runtime_resolve
+##资料
+
+glibc 2.9 source
+《linux二进制分析》
+linux elf 手册
+&各种百度搜索
 
 基于32位elf，64位一些结构会略有不同，新手学习，如果有理解错误，请师傅们帮忙指出。
 
@@ -104,9 +110,8 @@ struct link_map
        dependency order for symbol lookup (with and without
        duplicates).  There is no entry before the dependencies have
        been loaded.  */
-     //动态段中dt_needed标签所标示的一些列依赖库，他被保存于当前模块link_map的
-     //搜索范围之内，通常用于独立请求的符号搜索，当在依赖项被加载前，不会有任何
-     //可用的入口点
+     //依赖项及其依赖项的数组，按符号查找的依赖项顺序排列(有和没有重复)。
+     //在加载依赖项之前没有条目。
     struct r_scope_elem l_searchlist;
     
     /* Dependent object that first caused this object to be loaded.  */
@@ -114,12 +119,24 @@ struct link_map
     struct link_map *l_loader;
     /* This is an array defining the lookup scope for this link map.
        There are initially at most three different scope lists.  */
-      //这个数组定义了当前模块用于lookup函数搜索的范围，最多有三个不同范围的列表
+      //这个数组定义了当前模块用于lookup函数搜索的范围，最初最多有三个不同范围的列表
     struct r_scope_elem **l_scope;
     
     ......
     
 };
+
+```
+
+### 有关宏定义
+定义在ldsodef.h头文件中  
+
+```
+//宏访问link_map成员并计算地址
+# define D_PTR(map, i) ((map)->i->d_un.d_ptr + (map)->l_addr)
+#else
+# define D_PTR(map, i) (map)->i->d_un.d_ptr
+#endif
 
 ```
 
