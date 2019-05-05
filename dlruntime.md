@@ -64,6 +64,8 @@ struct r_scope_elem
    This data structure might change in future, if necessary.  User-level
    programs must avoid defining objects of this type.  */
    
-   //link_map是一个用于描述可加载共享目标文件的结构，l_next,l_prev是一个链接了开始加载的所用共享目标文件，是一个单链表结构
+   //link_map是一个用于描述可加载共享目标文件的结构，l_next,l_prev是一个链接了
+   //开始加载的所用共享目标文件，是一个单链表结构,
+ 
 
 ```
