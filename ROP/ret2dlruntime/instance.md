@@ -27,5 +27,24 @@
 
 ---  
 
+重定位项结构入elf.h中定义的那样包含r_offset和r_info成员，查看read函数的重定位表项，r_info的高8位保存了read在符号表中的索引，低8位表示了符号绑定所必需的信息，r_offset定位了重定位时需要修改的位置，我们更具 r_info >> 8 计算获得索引为 1, Elf32_Sym符号表条目结构的大小为16字节(可以通过编写一个简单c程序获得),所以read的符号表项位于符号表的 1 * 16 偏移处，如下所示0x1dc-0x1cc 16
+
+---  
+
+![5.png](https://github.com/S0DUKU/PWNnote/blob/master/ROP/ret2dlruntime/images/5.png)  
+
+---  
+
+条目第一个成员时read在字符串表中的偏移，剩余的条目是符号表所描述的其他字段  
+
+回到重定位条目，他的第一个r_offset描述的是需要修复的位置，跟踪进入，他刚好就是got表中的read所在的条目。
+
+---  
+
+![4.png](https://github.com/S0DUKU/PWNnote/blob/master/ROP/ret2dlruntime/images/4.png)  
+
+---  
+
+之前提到的dl_runtime_resolve并没有对这些表项的边界做过多的检查检查，内部函数也就实际上使用reloc_offset这个参数找到重定位表并根据重定位条目获得符号字符串并进一步做dl-symbol-lookup，符号搜索，获得符号字符串的流程正如上方所示，所以我们可以通过伪造所需的这些数据结构，来完ret2dl_runtime_resolve攻击，
 
 
