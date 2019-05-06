@@ -45,6 +45,9 @@
 
 ---  
 
-之前提到的dl_runtime_resolve并没有对这些表项的边界做过多的检查检查，内部函数也就实际上使用reloc_offset这个参数找到重定位表并根据重定位条目获得符号字符串并进一步做dl-symbol-lookup，符号搜索，获得符号字符串的流程正如上方所示，所以我们可以通过伪造所需的这些数据结构，来完ret2dl_runtime_resolve攻击，
+之前提到的dl_runtime_resolve并没有对这些表项的边界做过多的检查检查，内部函数也就实际上使用reloc_offset这个参数找到重定位表并根据重定位条目获得符号字符串并进一步做dl-symbol-lookup，符号搜索，获得符号字符串的流程正如上方所示，所以我们可以通过伪造所需的这些数据结构，来完成ret2dl_runtime_resolve攻击。  
 
+## ret2dl_runtime_resolve  
+
+伪造
 
