@@ -46,7 +46,18 @@ randkstack                    -   kernel  stack
 ### 暴力搜索  brute force
 
 经过测试发现，32位下后24位被随机化，2^24中可能性，如果可以进行如此多的尝试，是可以  
-爆破处缓冲区地址的,并且alsr有个特性(这段来自于international conference on security and privacy in communication networks 2014) 随机化只会随机一个前缀页的大小,4k(2^12 绝大部分intel架构)  
+爆破处缓冲区地址的,并且alsr有个特性(这段来自于international conference on security and privacy in communication networks 2014)   
+
+```  
+
+unfortunately,it only randomizes the prefix of entire pages, thus in case  of 4k pages (which is common on the intel architecture), the last 12 bits of an address are not randomized. they extend it to 20 bits and therefore only the last 4 bits are not randomized.  
+
+不幸的是，它只随机化整个页面的前缀，因此对于4k页面(在intel体系结构中很常见)，地址的最后12位不是随机的。他们把它扩展到20位，因此只有最后4位不是随机的。  
+
+
+```  
+
+随机化只会随机一个前缀页的大小,4k(2^12 绝大部分intel架构)  
 也就意味后12位不变，可以用这个特性确定libc版本(搜索libc数据库)，有些现代操作系统将其扩  
 展至20位，只有4位不变    
 
